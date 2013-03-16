@@ -22,14 +22,11 @@ Implementation javascipt/html5 of the [Cute God Challenge](http://www.lostgarden
 ### Robozzle Solver [[.py]](files/projects/games/robozzle.py)<img src="files/projects/games/robozzle.png"
      title="robozzle" alt="robozzle" 
      style="float:right; width:15%"/>
-A solver for the puzzles from [Robozzle](http://robozzle.com/) in python.
+A solver for the puzzles from [Robozzle](http://robozzle.com/) in python.<br/><br/>
 
 ### Quoridor and Keth online game [[git]](https://github.com/shenshei/Quoridor)<img src="files/images/keth.png"
-     title="robozzle" alt="keth" 
-     style="float:right; width:15%"/>
-                                                                               <img src="files/images/quoridor.png"
-     title="robozzle" alt="quoridor" 
-     style="float:right; width:15%"/>
+     title="keth" alt="keth"
+     style="float:right; width:15%"/><img src="files/images/quoridor.png" title="robozzle" alt="quoridor" style="float:right; width:15%"/>
 
 Online implementation of two board games in HTML5/Canvas/SVG using the [Play2 Framework](http://www.playframework.org/)
 
