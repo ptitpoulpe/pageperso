@@ -1,0 +1,45 @@
+body {
+    width: 650px;
+    margin: 0px auto 0px auto;
+    /*font-family: "Courier New", Courier, monospace;*/
+}
+
+a:link{
+	color:#555555;	
+	font-weight:bold;
+}
+
+a:visited{
+	color:#222222;
+	font-weight:bold;
+}
+
+a:hover{
+	color:#222222;	
+	font-weight:bold;
+}
+
+div#navigation {
+    text-align: center;
+    border-bottom: 4px solid black;
+}
+
+#advertising{
+        width:760px;
+	margin:auto;
+	padding:5px;
+}
+
+img#Me {
+    float:right;
+    width:35%;
+}
+
+div#navigation a {
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    background-color: black;
+    padding: 3px 10px 3px 10px;
+    margin: 0px 10px 0px 10px;
+}

@@ -1,0 +1,7 @@
+19:10 < polux> shenshei: ce que je te conseille de faire c'est 1. installer haskell platform 2. cabal install virthualenv
+19:10 < polux> 3. cd ~/monsite
+19:10 < polux> 4. virthualenv
+19:10 < polux> 5. source .virthualenv/bin/activate
+19:10 < polux> 6. cabal install hakyll
+19:10 < polux> et voilà
+

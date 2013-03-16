@@ -1,0 +1,705 @@
+\documentclass[twocolumn,10pt]{article}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc} 
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{lingmacros}
+\usepackage{multicol}
+\usepackage{natbib}
+\usepackage[bf,small,center]{titlesec}
+
+\titlelabel{\thetitle.\enspace}
+\titleformat*{\subsection}{\bf}
+\titleformat*{\subsubsection}{\bf}
+\renewcommand\cite{\citep}
+\citestyle{chicago}
+\renewcommand\multirowsetup{\centering}
+\newcommand{\todo}[1]{{\color{red} \bf ** #1 **}}
+\definecolor{gris25}{gray}{0.75}
+\newcommand{\totranslate}[1]{{\color{gris25} #1}}
+\addtolength{\columnsep}{0.5cm}
+\addtolength{\topmargin}{-1cm}
+\addtolength{\textheight}{2cm}
+
+\addtolength{\oddsidemargin}{-.7cm}
+\addtolength{\textwidth}{1.0cm}
+
+% 5 formatted pages
+% Deadline: July 31, 2009
+% Should not identify the author(s)in any manner
+% Accepted fonts: Times Roman, Times New Roman. Courier
+% Font size: 10 pts for the main text, with 11 points leading
+% 2 columns, 8,42 cm each with 0,95 cm between columns
+\pagestyle{empty}
+
+\title{\bf Noun/Verb Inference}
+\author{ \begin{tabular}{cc}
+ {\bf Paul Bedaride} & {\bf Claire Gardent} \\
+  & \\
+ INRIA/LORIA & CNRS/LORIA\\
+ Universit\'{e} Henri Poincar\'{e}, Nancy & Nancy\\
+ {{ paul.bedaride@loria.fr}} & { claire.gardent@loria.fr}
+   \end{tabular}
+}
+\date{}
+\begin{document}
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    \begin{abstract}
+      We present a system which combines logical inference with a semantic
+calculus producing ``normalised semantic representations'' that are
+robust to surface differences which are irrelevant for entailment
+detection. We focus on the detection of entailment relations between
+sentence pairs involving noun/verb alternations and we show that the
+system correctly predicts a range of interactions between basic
+noun/verb predications and semantic phenomena such as quantification,
+negation and non factive contexts.
+    \end{abstract}
+    {\small {\bf Keywords:} Semantic Role Labelling, Textual Entailment, Noun/Verb Alternations\\~}
+  \end{@twocolumnfalse}
+  ]
+
+\section{Introduction}
+
+\thispagestyle{empty}
+%% Semantic reasoning involves both building a semantic representation
+%% and reasoning with it. 
+
+%% The main semantic representations used by today's semantic processors
+%% are the syntactic dependency trees output by some parsers, the
+%% predicate/argument (P/A) structures produced by semantic role labelers
+%% and the logical formulae returned by grammar based approaches.
+
+%% These representations differ in how much they abstract over syntactic
+%% differences that are semantically irrelevant for today's reasoning
+%% applications such as for instance, the active/passive variation.
+
+%% Dependency trees, being syntactic structures, provides no such
+%% semantic abstraction so that syntax based equivalences need to be
+%% detected by some kind of similarity-based reasoning.
+
+%%  Logical formulae capture some of these equivalences (they assign for
+%%  instance the same thematic grid to an active/passive alternation) but
+%%  usually remain rather shallow in that e.g., noun/verb equivalences
+%%  such as {\it destroy/destruction} are not captured and semantically
+%%  meaningless surface differences such as the presence or absence of
+%%  the passive auxiliary {\it is} in {\it The cat chases the mouse/The
+%%    mouse is chased by the cat} will result in different i.e.,
+%%  semantically non equivalent semantic representations. 
+
+%% Finally, P/A structures and in particular, the joint structures
+%% produced by the CoNLL 2009 shared task on joint syntactic/semantic
+%% role labeling, do provide an interesting level of abstraction whereby
+%% the syntax of both verbs and nouns are normalised to a more semantic
+%% thematic grid.
+
+%% In sum, the semantic representations produced by today semantic role
+%% labelers (SRL) provide a level of abstraction that is well suited
+%% for semantic reasoning. However, contrary to the logical formulae
+%% produced by grammar based systems, these representations are not
+%% immediately amenable to deep, logic based, reasoning.  Specifically,
+%% the joint representations produced by today SRLs fail to provide a
+%% principled account of the semantic interactions between the basic
+%% predications of a sentence (the objects best captured by SRLs) and
+%% their sential context. They fail in particular, to explain how the
+%% various modals, connectives, attitude and belief verbs that can occur
+%% in this sentential context can impact the truth value of these
+%% predications.
+
+As has been repeatedly argued, detecting whether a given sentence
+$S_1$ implies some other sentence $S_2$ is a basic semantic task that
+natural language understanding systems must be able to
+perform. Consequently, implication detection has been the focus of
+intense research in particular since the inception in 2005 of the RTE
+(Recognising textual entailment) challenge\cite{Dagan2005}.
+
+In this paper, we focus on detecting implications between sentences
+involving a nominal/verbal alternation such as for instance, the
+following sentence pairs:
+
+\eenumsentence{\label{ex:if}
+\item Assuming no dramatic {\it fluctuation} in interest rates , the
+  association expects to achieve near record earnings in 1990
+  .\\ $\rightarrow$ If interest rates do not {\it  fluctuate} dramatically ,
+  near record earnings are expected in 1990 .  \\ $\rightarrow$
+  Unless interest rates  {\it fluctuate} dramatically, near record earnings are
+  expected .  }
+
+The approach we propose takes a middle path between the logical
+approach adopted by semanticists and the similarity based reasoning
+resorted to by many RTE systems \cite{Dagan2005}. As \cite{natlog} has
+argued, while the first approach produces semantic representations
+that are too brittle to handle real text (for example, \cite{Bos2006}'s system was able to find a proof for less than 4\% of the
+problems in the RTE1 test set), the second fails to adequately handle
+commonplace semantic phenomena such as e.g., negation, quantification
+or non-factive contexts.
+
+To overcome these shortcomings, we combine a logic based approach with
+a robust calculus of semantic representations in which joint
+syntactic/semantic structures produced by semantic role labelers (SRL)
+are rewritten into first order logic (FOL) formulae.
+
+Because our semantic calculus has access to SRL structures, it
+provides an appropriate level of abstraction from syntactic
+differences that are irrelevant to entailment detection. For instance,
+it ensures that the semantic representations for {\it Rome was
+  destroyed by the Barbarians}, {\it The Barbarians have destroyed
+  Rome}, {\it Rome's destruction by the Barbarians} and {\it Barbarians
+  destruction of Rome} are all identical\footnote{Note that although
+  grammar based systems are in principle able to capture most of these
+  equivalences, in practice they often fail to because the
+  representations they produced closely reflects the input string and
+  in particular, contains most of its function words. For instance,
+  the representations associated by Boxer \cite{boxer} with the four
+  ``{\it Rome} phrases'' above are all different: the passive differs
+  from the active in that it contains a {\it by} predication
+  reflecting the use of the agent phrase; the nominal versions differ
+  from the verbal in that that the nominal representation identifies a
+  topic whilst the verbal one does not; and the two nominal versions
+  differ in that they each contain either a {\it by} or an {\it of}
+  predication depending on the function words they contain.}.
+
+Furthermore, the use of a general rewrite system allows for
+abstractions and generalisations that are difficult to capture in a
+strictly compositional system à la Montague. For instance, it permits
+capturing both the restriction and the scope of a quantifier with a
+single rule applying to a non local fragment of the dependency tree
+namely, the fragment containing the determiner, its associated nominal
+and the verb phrase over which the quantifier scopes. More generally,
+the use of a general rewrite system on joint syntactic/semantic
+structures permits abstracting over surface details that are
+irrelevant to the detection of sentential implication.
+
+
+
+
+%%  In this paper, we present an
+%% approach that aims to combine the joint syntactic/semantic structures
+%% produced by semantic role labelers with a logic based reasoning
+%% process that can handle the interaction between basic nominal or
+%% verbal predications on the one hand and sentential context on the
+%% other.
+
+The paper is structured as follows. We first describe the semantic
+role labeler we developed for verbs and nouns (Section
+\ref{sec:srl}). We then show how logic based representations are
+derived from the joint syntactic/semantic structures produced by this
+labeler and how they are used to recognize (non) sentential
+entailments (Section \ref{sec:logic}). Finally in section
+\ref{sec:evaluation}, we report on a first evaluation showing that the
+resulting system permits recognising some of the expected
+inferences. %% We evaluate the system on a small benchmark including
+%% pairs of (non) entaiment related sentences and illustrating the
+%% interaction between syntactic variation on N/V predications on the one
+%% hand and modals, negation and belief context on the other. We show
+%% that the system correctly recognizes (non) entailments on \todo{XX\%}
+%% of the cases contained in the presented benchmark.
+%%\totranslate{
+%%La normalisation des représentations syntaxiques permet d'obtenir
+%%des gains de performance dans la plupart des domaines du TAL
+%%nécessitant un traitement sémantique. Un système de recherche
+%%d'information voulant trouver qui a détruit Rome, devrait pouvoir
+%%acquérir les données depuis chacune des phrases ci-dessous. 
+%%\begin{enumerate}
+%% \item "Rome was destroyed by the Barbarians."
+%% \item "The Barbarians have destroyed Rome."
+%% \item "Rome's destruction by thé Barbarians".
+%% \item "Barbarians destruction of Rome."
+%%\end{enumerate}
+%%De la même manière, les systèmes d'extraction d'informations, de
+%%question-réponse et les résumeurs automatique doivent pouvoir gérer ces
+%%variations syntaxiques. Un des éléments de réponse à ce problème de
+%%normalisation des représentations syntaxiques, sont les graphes de dépendances,
+%%mais ils sont pas assez normalisés pour gérer des cas comme ceux vus
+%%précédemment. C'est pourquoi nous proposons un outil qui permet d'aller plus
+%%loin que les dépendances dans la normalisation, en associant des grilles
+%%thématique aux graphes de dépendances afin de pouvoir considérer les
+%%différentes variations syntaxiques.
+%%
+%%Ce système n'a pas pour but d'obtenir une forme normalisée directement à
+%%partir d'un texte, mais plutôt d'utiliser des outils et des ressources
+%%existantes et de les assembler de manière à obtenir une forme normalisée.
+%%
+%%Pour commencer nous allons présenter nos choix d'outils, et de ressources.
+%%Nous expliquerons ensemble comment nous procédons pour obtenir une forme
+%%normalisée. Et enfin, nous présenterons le cadre d'évaluation utilisé et
+%%détaillerons les résultats obtenus.
+%%}
+
+\section{Semantic Role Labelling}
+\label{sec:srl}
+
+In order to recognise that {\it David Hiddleston was killed} can be
+inferred from {\it The avalanche killed David Hiddleston on the
+  spot }, it must first be recognised that {\it X kill Y} entails {\it Y was
+  killed}. Consequently, many of the the recent entries in the annual
+Recognizing Textual Entailment (RTE) competition have used rewriting
+in a variety of ways, though often without distinguishing it as a
+separate subproblem.
+
+Based on this observation, we undertake to develop an entailment
+detection system in which rewriting is modelled using a standard
+rewriting system called GrGen \cite{grgen} which is at once efficient,
+notationally expressive and used in multiple domains (e.g., formal
+calculus, combinatoric algebra, operational semantics).
+
+Our semantic role labeller uses rewrite rules to rewrite the
+dependency structures output by the Stanford statistical parser into
+joint syntactic/semantic structures where verbs and nouns predications
+are assigned identical thematic representations. In particular, the
+thematic structure of the four versions of {\it Rome was destroyed by
+  the Barbarians} given above will be identical.
+
+%% We developed a hybrid semantic role labeler which combines the
+%% Stanford statistical parser with a set of rewrite rules converting the
+%% Standford dependency structures (SD) produced by that parser into
+%% labeled SDs (LSDs) capturing the thematic structure of verbs. 
+
+In previous work \cite{bedgariwcs09}, we presented the derivation process of
+the normalising rewrite rules for verbs and the resulting labeller was
+shown to achieve 72.6\% F-mesure on the PropBank data, 86.3\%
+precision on positive entailment detection on a benchmark of 4976
+constructed examples and 99.28\% precision for non entailment cases.
+
+Here, we focus on SRL for nouns and describe how the
+syntax-to-semantic rewrite rules required to normalise the
+representation of nouns are derived from existing resources namely
+NomLex, NomBank and Comlex. The rules are automatically derived from
+these resources in three main steps.
+First, a subcategorisation lexicon for nouns is extracted from
+NomLexPlus by unfolding its factorised entries and filtering out
+linguistically illicit combinations.
+Second, the mapping between syntactic and semantic arguments is
+derived from ComLex and integrated in the subcategorisation lexicon
+derived in step 1.
+Third, lexicalised rewrite rules are derived from the resulting
+lexicon. 
+
+We now explain each of these steps in more detail. 
+
+\paragraph{Unfolding NomLexPlus.}
+NomLexPlus is a subcategorisation lexicon for nouns built as an
+extension of NomLex and derived semi automatically from NomBanK. It
+contains 7 000 lexical entries, each entry encoding the
+subcategorisation frames of a nominal predicate. When the noun is a
+deverbal, the verb to which it is related is also indicated.
+
+Figure \ref{fig:nlpentry} shows the NomLexPlus entry for the noun {\it
+  articulation}. The \verb!VERB-SUBC! field indicates the possible
+frames of that noun namely \verb!NOM-NP! , \verb!NOM-NP-PP! and
+\verb!NOM-INTRANS!\footnote{The conventions used for naming frames are
+  taken over from ComLex. Briefly, the frame name indicates the major
+  category of each argument whereby the subject is systematically
+  ommitted. Each argument is futhermore associated with a function and each
+  function with a set of possible realisations.}.  As can be seen,
+NomLexPlus entries are factorised in that each frame is associated
+with several possible realisations for each argument in that
+frame. For instance, the frame \verb!NOM-NP! indicates that the
+\verb!SUBJECT! argument can be realised as a \verb!N-N-MOD!, a
+\verb!DET-POSS! or a \verb!PP :PVAL "by"! and similarly, that the
+\verb!OBJECT! argument can be realised as a \verb!N-N-MOD!, a
+\verb!DET-POSS! or a \verb!PP :PVAL "of"!.
+
+
+\begin{figure}
+\begin{scriptsize}
+\begin{verbatim}
+(NOM :ORTH "articulation"
+     :PLURAL *NONE*
+     :VERB "articulate"
+     :NOM-TYPE ((VERB-NOM))
+     :VERB-SUBJ ((PP :PVAL ("by")))
+     :VERB-SUBC ((NOM-NP :SUBJECT ((N-N-MOD)
+                                   (DET-POSS)
+                                   (PP :PVAL ("by")))
+                         :OBJECT ((DET-POSS)
+                                  (N-N-MOD)
+                                  (PP :PVAL ("of")))
+                         :REQUIRED ((OBJECT)))
+                 (NOM-NP-PP :SUBJECT ((N-N-MOD)
+                                      (DET-POSS)
+                                      (PP :PVAL ("by")))
+                            :OBJECT ((DET-POSS)
+                                     (N-N-MOD)
+                                     (PP :PVAL ("of")))
+                            :PVAL ("with"))
+                 (NOM-INTRANS :SUBJECT ((N-N-MOD)
+                                        (DET-POSS)
+                                        (PP :PVAL ("of" "by")))
+                              :REQUIRED ((SUBJECT))))
+\end{verbatim}
+\end{scriptsize}
+\caption{NomLexPlus entry \label{fig:nlpentry}}
+\end{figure}
+
+To identify the possible syntactic configurations associated by
+NomLexPlus with each noun, we unfold each entry and associate with
+each noun the set of unfolded frames that can be thus derived. The
+unfolding consists in taking the product of each list of possible
+realisation for each argument and filtering out the result to
+eliminate illicit combinations such as for instance, frames with
+several arguments having the same realisation. %% For instance, after
+%unfolding and
+%% filtering, the \verb!NOM-NP! frame of the NomLexPlus entry for {\it
+%%   articulation} will be the following: 
+%% \begin{scriptsize}
+%% \begin{verbatim}
+%% (NOM :ORTH "articulation"
+%%      :VERB-SUBC ((NOM-NP :SUBJECT (N-N-MOD)
+%%                          :OBJECT  (DET-POSS))
+%%                   (NOM-NP :SUBJECT (N-N-MOD)
+%%                          :OBJECT  (PP :PVAL ("of")))
+%%                   (NOM-NP :SUBJECT (DET-POSS)
+%%                          :OBJECT  (N-N-MOD))
+%%                  (NOM-NP :SUBJECT (DET-POSS)
+%%                          :OBJECT  (PP :PVAL ("of")))
+%%                  (NOM-NP :SUBJECT (PP :PVAL ("by"))
+%%                          :OBJECT  (DET-POSS))
+%%                  (NOM-NP :SUBJECT (PP :PVAL ("by"))
+%%                          :OBJECT  (N-N-MOD))
+%%                  (NOM-NP :SUBJECT (PP :PVAL ("by"))
+%%                          :OBJECT  (PP :PVAL ("of")))))
+%% \end{verbatim}
+%% \end{scriptsize}
+\paragraph{Deriving the syntax to semantics mapping.}
+%% For each frame in NomLexPlus, we then derive the mapping between
+%% syntactic function and thematic role from ComLex frames
+%% descriptions.
+ComLex specifies for each verb frame the mapping between
+semantic and syntactic arguments.%%   For instance, the ComLex\verb!NP!
+%%   frame\footnote{Comlex specifies the syntax to semantic mapping of
+%%     verb frames whereas NomLexPlus specifies the syntactic frames of
+%%     nouns. By convention, a frame called F in ComLex is
+%%     referred to as NOM-F in NomLexPlus.} maps the
+%%   \emph{subject} to \emph{arg1} and the \emph{object} to \emph{arg2} :
+%% \begin{scriptsize}
+%% \begin{verbatim}
+%% (VP-FRAME NP :CS ((NP 2))
+%%              :GS (:SUBJECT 1 :OBJECT 2)
+%%              :EX "he went.")
+%% \end{verbatim}
+%% \end{scriptsize}
+We use this information to directly associate the nominal syntactic
+frame of our lexicon with thematic roles (rather than syntactic
+functions). %% For instance, we apply the above information to transform
+%% the NOM-NP frames of the noun ``articulation'' from: %% . The NP ComLex frame (cf, Figure
+%% %% \ref{fig:comlexframe}) that correspond to NOM-NP tell us that for
+%% %% these frame, \emph{subject} and \emph{object} represent respectively
+%% %% \emph{arg1} and \emph{arg2}.  We can then transform:
+%% \begin{scriptsize}
+%% \begin{verbatim}
+%% (NOM :ORTH "articulation"
+%%      :VERB-SUBC ((NOM-NP :SUBJECT (N-N-MOD)
+%%                          :OBJECT  (DET-POSS))
+%%                   (NOM-NP :SUBJECT (N-N-MOD)
+%%                          :OBJECT  (PP :PVAL ("of")))))
+%% \end{verbatim}
+%% \end{scriptsize}
+%% to:
+%% \begin{scriptsize}
+%% \begin{verbatim}
+%% (NOM :ORTH "articulation"
+%%        (SEM :ARG1 (N-N-MOD)
+%%             :ARG2  (DET-POSS))
+%%        (SEM :ARG1 (N-N-MOD)
+%%             :ARG2  (PP :PVAL ("of"))))
+%% \end{verbatim}
+%% \end{scriptsize}
+\paragraph{Specifying rewrite rules.}
+Based on the subcategorisation lexicon extracted from NomLexPlus and
+the syntax to semantics mapping derived from ComLex, we specify
+a set of rewrite rules that maps the dependency graphs produced by the
+Stanford parser to dependency graphs enriched with thematic 
+information. 
+
+First, we manually identify the mapping between the possible argument
+realisations (\verb!DET-POSS, N-N-MOD! and \verb!PP :PVAL!) and the
+Stanford parser dependency structures. %% That is, we map the
+%% realisations to the dependency relation or dependency graphs produced
+%% by the Stanford parser for sentences instantiating these
+%% realisation.
+The mapping is straigthfoward and involves roughly 20
+rules.
+
+Next, we define the rewrite rules by mapping the Stanford dependency
+graph corresponding to a possible frame to the thematic structure
+resulting from mapping each of the argument present in that frame to
+the thematic role defined for this argument in that frame by the
+syntax-to-semantic mapping defined in the lexicon produced in the
+previous step.
+
+\begin{figure}
+\begin{center}
+% \includegraphics[width=.8\linewidth]{images/regle.pdf}
+\end{center}
+\caption{Rewrite rule example \label{rrnnp}}
+\end{figure}
+
+In this way, we derive a set of 453 general syntax to semantics
+rewrite rules. These general rules are furthermore associated with
+conditions which restrict their application depending on the specific
+noun and prepositions found in the input text. In other words, the
+rules are lexicalised but lexical conditions are only checked once a
+general, non lexical rule has been found which matches the input. We
+found that roughly 75\% of the rules have a narrow coverage in that
+they apply to less than 100 nouns whilst the remaining 25\% are fairly
+general rules applying to many nouns.
+
+%\subsection{Rules obtained}
+
+
+%% The finals rewriting rules are composed of one graph dependency pattern for
+%% the syntactic frame, and of several alternations with a lexicon associated to each one.
+%% Three quarters of the lexicons contain less than 100 entries.
+%% \begin{center}
+%% \begin{scriptsize}
+%% \begin{tabular}{|@{}c@{}||@{}c@{}|@{}c@{}|@{}|@{}c@{}|@{}c@{}|@{}c@{}|}\hline
+%% \multirow{3}{20mm}{main-sub} & \multirow{3}{9mm}{\#main} & 
+%%     \multirow{3}{10mm}{\#sub} & \multicolumn{3}{c|}{sub} \\\cline{4-6}
+%%  & & & \multirow{2}{10mm}{range} & \multirow{2}{10mm}{average} & 
+%%     \multirow{2}{12mm}{standard deviation} \\
+%%  & & & & & \\\hline\hline
+%% rules-alternations & 15     & 453    & 13-49     & 30.2    & 11.93 \\\hline
+%% lexicons-entries     & 453    & 323491 & 1-25355   & 714.1   & 2767.26 \\\hline
+%% \end{tabular}
+%% \end{scriptsize}
+%% \end{center}
+
+\section{Logic based reasoning}
+\label{sec:logic}
+To capture the interaction between basic, nominal or verbal
+predications and standard semantic phenomena such as quantification,
+negation and non factive contexts, we rewrite the joint structures
+produced by the labeller presented in the previous section to a
+first-order logic (FOL) formula. We then use theorem proving on these
+formulae to detect (non) entailment relations between sentences.
+
+\paragraph{From labelled dependency structures to FOL formulae.}
+The translation of a LSD into a FOL formula is again performed using
+rewriting. Different rewriting rules will apply depending on the
+particular structures present in the input. Briefly, the set of
+rewrite rules used to handle the examples in the benchmark used
+(cf. section \ref{sec:evaluation}) can be sketched as follows.
+
+A first set of rules deals with quantification and ensures both the
+proper translation of the determiner (e.g., that {\it every} rewrites
+to a universal) and the appropriate binding of both scope and
+restrictions (e.g., {\it every man runs} will be assigned the
+semantics $\forall x (Mx \rightarrow Rx)$).
+
+A second set of rules ensures that each node in a labelled dependency
+structure (LSD, that is, the thematic grid associated with a noun or a
+verb) is associated with an existentially quantified variable and a
+predication over that variable where the predicate used is the word
+labelling the node. Furthermore, each edge translates to a binary
+relation between the source and the target node variables. The overall
+formula associated with an LSD is then the bracketed conjunction of
+the predications introduced by each node.  For instance, the formula for {\it John loves Mary} will be  $\exists
+e,y,z: (love(e) \wedge john(y) \wedge mary(z) \wedge arg0(e,y) \wedge
+arg1(e,z))$.
+
+Finally, a third set of rules caters for the translation of negation
+and sentence connectives. These rules search the syntactic structure
+for connectors and negation words and rewrite these by combining the
+semantics of these words with that of their arguments. If necessary,
+the semantics of the arguments can be modified to account for the
+interaction with the context. For instance, an existential will be
+rewritten to a universal when it occurs in a universally quantifying
+context (e.g., {\it If a man owns a donkey, he feeds it}).
+
+\paragraph{Checking entailment.}
+Given the above translation into FOL, textual entailment between
+sentences can be tested by checking for logical entailment between the
+associated FOL formulae \cite{blackburn99:_infer_and_comput_seman}. 
+%% . This can be done using either a theorem
+%% prover or a model builder and as shown in
+%% , both tools can be used in
+%% a complementary fashion. %% Indeed, a prover is geared towards deriving a
+%% contradiction whilst a model builder aims to construct a model
+%% satisfying the input formula. As a result, provers are often
+%% inefficient at dealing with satisfiable formulae and model builder at
+%% dealing with unsatisfiable ones.
+%% To test the entailment $\phi_1 \rightarrow\phi_2$ between the logical
+%% representations of two texts $T_1$ et $T_2$, we therefore use the
+%% Equinox prover\footnote{http://www.cs.chalmers.se/~koen/folkung/} and
+%% the Paradox model builder\footnotemark[7] in parallel. In both cases,
+%% the query is the negation of the implication $\neg(\phi_1
+%% \rightarrow\phi_2 )$ and a positive reply indicates that the
+%% entailment does not hold.
+In practice, we get formulas for the 5 first syntactic analyses and
+select the analysis with the highest semantic score where the scoring
+system favors longer predications (i.e., predications with a higher
+number of dependents) over shorter ones.  We then check logical
+entailment between the two representations associated with the most
+highly scored analysis of each of the two sentences to be compared.
+\section{Evaluation}
+\label{sec:evaluation}
+
+
+We evaluate the proposed approach in two ways. First, we examine its
+capacity as a SRL by computing recall and precision against the ConLL
+2000 data. This gives a mesure of how good the system is at
+normalising verbal and nominal dependency structures. Second, we test
+the approach on entailment related sentence pairs where the (non)
+entailment is mediated through syntax based equivalence and in
+particular, nominalisations. 
+
+\paragraph{SRL evaluation.}
+The evaluation against the ConLL data yields the results given in
+the following table:
+\begin{center}
+\begin{tabular}{|c||c|c|c|}\hline
+          & precision & recall  & f-score \\\hline\hline
+Unlabeled &   83.56\% & 65.36\% & 73.35   \\\hline
+Labeled   &   72.66\% & 56.83\% & 63.78   \\\hline
+\end{tabular}
+\end{center}
+The unlabeled score gives the proportion of correct predicate/argument
+dependency found (for verbs and nouns) while the labeled score
+additionally checks the specific relation holding between predicate
+and argument. The overall score situate our labeller in the middle
+range of ConLL 2009 joint labellers (F1 ranging from 36.05 to 85.44)
+with a reasonably good precision but a low recall due partly to the
+fact that the Stanford parser often fails to return the correct
+analysis\footnote{\cite{klein03accurate} report a label F-mesure of
+  86.3\% on section 23 of the Penn Treebank.}.
+
+\paragraph{Entailment detection.} 
+To evaluate our approach on entailment detection, we manually built a
+benchmark of 20 sentence pairs involving a N/V variation.  The
+benchmark encompasses 4 main types of entailment patterns dubbed
+respectively, {\it simple, light-verb, sem} and {\it
+  adj/adv}. A {\it simple} pattern is one such as
+\ref{ex:simple} where the entailment depends only on a nominalisation.
+\enumsentence{\label{ex:simple}
+Legislation to lift the debt ceiling is ensnarled in the fight over cutting capital-gains taxes.
+\\ $\rightarrow$ Capital-gains are taxed.
+}
+A {\it light-verb} pattern involves a light verb construction such as for example:
+\eenumsentence{\label{ex:lv}
+\item 
+An acceleration of investments gives Japanese companies control of large, highly visible U.S. corporations, such as Columbia Pictures Entertainment Inc. \\
+ $\rightarrow$
+   Japanese companies control U.S. corporations.\\
+ $\not\rightarrow$
+   An acceleration of investments controls U.S. corporations.
+\item 
+It is operating under Chapter 11 of the federal Bankruptcy Code,
+giving the company court protection from
+creditors'lawsuits.\\$\rightarrow$ Chapter 11 of the federal
+Bankruptcy Code protects the company.\\ $\not\rightarrow$ the company
+court protectsfrom creditors'lawsuits } The {\it adj/adv} type
+illustrates the interaction between predication and modifiers:
+\enumsentence{\label{ex:ld} Countries with inadequate protections for
+  intellectual-property rights could be hurting themselves.
+  \\ $\rightarrow$ Countries which inadequately protect
+  intellectual-property rights could be hurting themselves.  }
+Finally, a {\it sem} pattern illustrates the interaction between basic
+predications and semantic phenomena such as quantification, negation
+and non factive contexts. For instance, (\ref{ex:if}) illustrates the
+interaction of {\it if} (verbalised by {\it assuming, if} or {\it
+  unless}) negation (verbalised by {\it unless, no}) and N/V relations
+({\it fluctuation/fluctuate}).
+
+For each of the sentence pairs contained in the benchmark, the system correctly predicts the (non) entailment relation. 
+%% To y evaluate the approach on entailment detection, we manually built a
+%% benchmark of 80 sentence pairs involving a N/V variation. 
+
+%% \todo{Specify types of syntactic equivalence ; \% of cases handled}
+
+%% \todo{TBC}
+%% Our aim is to capture (non) entailment relations between sentences
+%% involving syntax-based equivalences.
+%% As mentioned in the introduction,
+%% we aim to model the interactions between syntax based semantic
+%% equivalences and the logical sentential context in which these
+%% equivalences occur.
+%% For instance, we aim to detect that sentence pairs
+%% (\ref{ex:ent}b-a,c-a) stand in an entailment relation whilst the pairs
+%% (\ref{ex:ent}d-a,e-a) do not (the items in brackets indicate the
+%% syntactic variations occurring between the compared sentences).
+
+%% \eenumsentence{\label{ex:ent}
+%% \item Index-related stock purchases are controled.
+%% \item Japan's regulators have since tightened controls on
+%%   index-related stock purchases. \hfill ({\it N/V, passive/active})
+%% \item Stock purchases that are index-related are controled.\hfill
+%%   ({\it Adj/Rel, passive/active})
+%% \item Japan's regulators have not tightened controls on
+%%   index-related stock purchases. \hfill ({\it N/V, passive/active,Negation})
+%% \item Japan's regulators have since tightened controls on some
+%%   index-related stock purchases.  \hfill ({\it N/V, passive/active,Quantification})
+%% }
+
+
+
+
+
+
+%% labeling test suite that take in account a lot of phenomenon. The labeling is
+%% done both on verbs and nouns. Like NomBank, there are other labels than the args
+%% ones like for negatives or modalities. For the evaluation we split our system
+%% in three sub-systems, the part we describe in this article for the nouns, another
+%% part we describe in \cite{} for verbs, and finally a part for specials labels that
+%% we will describe. We test all the combinations of these parts to view what we gain
+%% with each one. We will now describe the generation of the specials labels rules,
+%% and then talk about the results of the evaluation.
+
+%% \subsection{Corpus learned rules}
+%% The rules for verbs and nouns are made to handle argsN labels. For the other one we
+%% make statistics on the development set of conll'09 about which dependency must be rewrited
+%% in which label. We get all the translation over a certain threshold and generate a rewriting rule
+%% with it. For instance we get that the dependency "not" implies a "neg" label in 97\%
+%% of the cases. Then we made a rewrite rule that transform "not" dependency in "neg" one.
+
+%% \subsection{Results}
+%% We test our system on the train set of conll'09, and we use their script for the evaluation.
+%% The script give statics on argument and not on full frames.
+%% \begin{table*}
+%% \begin{center}
+%% \begin{scriptsize}
+%% \begin{tabular}{|ccc|||c|c|c||c|c|c||c|c|c||c|}\hline
+%% \multicolumn{3}{|c|||}{Systems} & \multicolumn{3}{c||}{Labeled} & \multicolumn{3}{c||}{Unabeled} & \multicolumn{3}{c||}{Proposition} & Exact \\\hline
+%% XTag & NomLex & CoNLL & Precision & Recall & F1 & Precision & Recall & F1 & Precision & Recall & F1 & Match\\\hline\hline
+%%  x &   &   & 77.53\% & 43.83\% & 56.00\% & 89.90\% & 50.83\% & 64.94\% & 5.87\% & 5.87\% & 5.87\% & 4.72 \\\hline
+%%    & x &   & 68.91\% & 35.83\% & 47.15\% & 88.47\% & 46.01\% & 60.54\% & 3.69\% & 3.69\% & 3.69\% & 4.27 \\\hline
+%%    &   & x & 90.13\% & 28.43\% & 43.23\% & 100.00\% & 31.55\% & 47.96\% & 0.22\% & 0.22\% & 0.22\% & 3.97 \\\hline
+%%  x & x &   & 68.60\% & 50.29\% & 58.03\% & 85.69\% & 62.82\% & 72.49\% & 9.09\% & 9.09\% & 9.09\% & 5.02 \\\hline
+%%    & x & x & 69.02\% & 36.80\% & 48.00\% & 87.00\% & 46.38\% & 60.50\% & 3.94\% & 3.94\% & 3.94\% & 4.34 \\\hline
+%%  x &   & x & 74.97\% & 46.59\% & 57.47\% & 86.34\% & 53.66\% & 66.19\% & 5.84\% & 5.84\% & 5.84\% & 4.72 \\\hline
+%%  x & x & x & 67.62\% & 53.55\% & 59.77\% & 82.87\% & 65.63\% & 73.25\% & 9.26\% & 9.26\% & 9.26\% & 5.09 \\\hline
+%% \end{tabular}
+%% \end{scriptsize}
+%% \end{center}
+%% \caption{results on train set}
+%% \end{table*}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Although it remains limited in scope, the system presented here lays
+the basis for an approach to entailment detection that combines a
+robust semantic calculus with logical based reasoning. It thereby
+departs from \cite{Bos2006} in that the semantic representations are
+less britle and from \cite{natlog} in that it integrates both the role
+labelling abstraction of SRLs and logical rather than natural logic
+reasoning. We have illustrated the potential of the approach by
+showing how it could handle a limited range of interaction between
+nominal predication, verbal predication and logical
+connnectives. Current work concentrates on extending the system
+coverage and on
+%scope and
+%% coverage of the approach and
+evaluating it on a full size benchmark designed to
+illustrate a wider range of interaction between basic predications and
+the various semantic phenomena potentially present in their sentential
+context.
+
+\footnotesize{
+\bibliographystyle{alpha}
+\bibliography{rte}
+}
+\end{document}

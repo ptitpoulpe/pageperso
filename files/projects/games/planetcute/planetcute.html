@@ -1,0 +1,399 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Planet God</title>
+</head>
+<body id="body">
+<canvas id="world" width="1200" height="800" border="1px"
+        style="position: absolute; left: 10; top: 10; z-index: 1;">
+Perdu
+</canvas>
+<canvas id="chars" width="1200" height="800"
+	style="position: absolute; left: 10; top: 10; z-index: 2;">
+Perdu
+</canvas>
+<canvas id="selec" width="200" height="200"
+	style="position: absolute; left: 1050; top: 50; z-index: 2;">
+Perdu
+</canvas>
+<script>
+
+// TEST DÉBUT
+function Bloc(src, height) {
+  this.img = new Image();
+  this.img.src = src;
+  this.height = height;
+}
+
+Bloc.prototype.drawOn = function (canvas) {
+  canvas.draw(this.img); 
+}
+// TEST FIN
+
+// images
+var blocs = new Array;
+var blocs_src = ['PlanetCute/Dirt Block.png',
+                 'PlanetCute/Grass Block.png',
+                 'PlanetCute/Roof East.png',
+                 'PlanetCute/Roof West.png',
+		 'PlanetCute/Brown Block.png',
+		 'PlanetCute/Wood Block.png',
+                 'PlanetCute/Door Tall Closed.png',
+                 'PlanetCute/Door Tall Open.png',
+		 'PlanetCute/Window Tall.png',
+		 'PlanetCute/Empty.png']
+var bloc = null;
+for(bloc_src in blocs_src){
+  bloc = new Image();
+  bloc.src = blocs_src[bloc_src];
+  blocs.push(bloc);
+}
+var cgirl = new Image();
+cgirl.src = 'PlanetCute/Character Cat Girl.png';
+var shad_SE = new Image();
+shad_SE.src = 'PlanetCute/Shadow South East.png';
+var shad_E = new Image();
+shad_E.src = 'PlanetCute/Shadow East.png';
+var shad_NE = new Image();
+shad_NE.src = 'PlanetCute/Shadow North East.png';
+var shad_N = new Image();
+shad_N.src = 'PlanetCute/Shadow North.png';
+var shad_NW = new Image();
+shad_NW.src = 'PlanetCute/Shadow North West.png';
+var shad_W = new Image();
+shad_W.src = 'PlanetCute/Shadow West.png';
+var shad_SW = new Image();
+shad_SW.src = 'PlanetCute/Shadow South West.png';
+var shad_S = new Image();
+shad_S.src = 'PlanetCute/Shadow South.png';
+var shad_sW = new Image();
+shad_sW.src = 'PlanetCute/Shadow Side West.png';
+var bl_selector = new Image();
+bl_selector.src = 'PlanetCute/Selector.png';
+
+
+// canvas infos
+const FPS = 30;
+var world = null;
+var w_ctx = null;
+var buffer = null;
+var b_ctx = null;
+var chars = null;
+var c_ctx = null;
+var selec = null;
+var s_ctx = null;
+// world infos
+var width = 20;
+var depth = 12;
+var height = 6;
+var bl_width = 100;
+var bl_depth = 81;
+var bl_height = 41;
+var scale = 0.5;
+var x_shift = 100;
+var y_shift = 200;
+// other infos
+var selection = null;
+var x_cgirl = 50;
+var y_cgirl = 200;
+var speed   = 5;
+var x_c_shift = 1;
+var y_c_shift = 1;
+var mouseX = 0;
+var mouseY = 0;
+
+//create keypoints
+var keypoints = new Array(width/4);
+for (w=0; w<=width/4; w++) {
+  keypoints[w] = new Array(depth/4);
+  for (d=0; d<=depth/4; d++) {
+    keypoints[w][d] = Math.floor(Math.random()*height) + 1;
+  }
+}
+
+//create world
+var plateau=new Array(width);
+for (w=0; w<width; w++) {
+  plateau[w] = new Array(depth);
+  for (d=0; d<depth; d++) {
+    var mh = 1;
+    var x = w/4; var fx = Math.floor(x);
+    var y = d/4; var fy = Math.floor(y);
+    if (x==fx && y==fy) {
+      mh = keypoints[fx][fy];
+    }else{ 
+      // interpolation bilinéaire
+      var pvs = 0;
+      var ps = 0;
+      for (sx=0; sx<=1; sx++) {
+        for (sy=0; sy<=1; sy++) {
+          var p = 1/Math.sqrt(Math.pow(x-(fx+sx),2)+Math.pow(y-(fy+sy),2));
+          var v = keypoints[fx+sx][fy+sy];
+          pvs = pvs + p*v;
+          ps = ps + p;
+        }
+      }
+      mh = Math.floor(pvs/ps);
+    }
+    plateau[w][d] = new Array;
+    for (h=0; h<=mh; h++) {
+      plateau[w][d][h] = 0;
+    }
+    plateau[w][d][mh+1] = 1;
+
+  }
+}
+
+
+
+window.onload = init;
+
+function init() {
+  world = document.getElementById('world');
+  w_ctx = world.getContext('2d');
+  buffer = document.createElement('canvas');
+  buffer.width  = world.width;
+  buffer.height = world.height
+  b_ctx = buffer.getContext('2d');
+  chars = document.getElementById('chars');
+  c_ctx = chars.getContext('2d');
+  selec = document.getElementById('selec');
+  s_ctx = selec.getContext('2d');
+
+  b_ctx.scale(scale, scale);
+  b_ctx.translate(x_shift,y_shift);
+  chars.addEventListener('mousemove', ev_mousemove, false);
+  chars.addEventListener('mousedown', ev_mousedown, false);
+  draw_world();
+  draw_selection();
+  setInterval(draw, 1000 / FPS);
+}
+
+function draw_world(){
+  b_ctx.clearRect(-100, -200, buffer.width*2+100, buffer.height*2+200); 	
+  w_ctx.clearRect(0, 0, world.width, world.height);
+
+  for (d=0; d<depth; d++) {
+    for (w=0; w<width; w++) {
+      for (h=0; h<plateau[w][d].length; h++) {
+	b_ctx.drawImage(blocs[plateau[w][d][h]], w*bl_width, 
+	                d*bl_depth-h*bl_height);
+        if (w>0 && d+1<depth && h>=plateau[w][d+1].length && h<plateau[w-1][d+1].length)
+  	  b_ctx.drawImage(shad_sW, w*bl_width, 
+                          d*bl_depth-h*bl_height);
+      }
+      h--;
+      var corners = {'N': true, 'S': true, 'E': true, 'W': true};
+      if (w<width-1 && plateau[w][d].length<plateau[w+1][d].length){ // E
+        corners['E'] = false;
+        b_ctx.drawImage(shad_E, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (w>0 && plateau[w][d].length<plateau[w-1][d].length){ // W
+        corners['W'] = false;
+        b_ctx.drawImage(shad_W, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (d<depth-1 && plateau[w][d].length<plateau[w][d+1].length){ // S
+        corners['S'] = false;
+        b_ctx.drawImage(shad_S, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (d>0 && plateau[w][d].length<plateau[w][d-1].length){ // N
+        corners['N'] = false;
+        b_ctx.drawImage(shad_N, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (corners['S'] && corners['E'] && w<width-1 && d<depth-1 && 
+	  plateau[w][d].length<plateau[w+1][d+1].length) { // SE
+        b_ctx.drawImage(shad_SE, w*bl_width,
+	                d*bl_depth-h*bl_height);
+      }
+      if (corners['N'] && corners['E'] && w<width-1 && d>0 && 
+          plateau[w][d].length<plateau[w+1][d-1].length) { // NE
+        b_ctx.drawImage(shad_NE, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (corners['S'] && corners['W'] && w>0 && d<depth-1 &&
+          plateau[w][d].length<plateau[w-1][d+1].length) { // SW
+        b_ctx.drawImage(shad_SW, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }
+      if (corners['N'] && corners['W'] && w>0 && d>0 &&
+          plateau[w][d].length<plateau[w-1][d-1].length) { // NW
+        b_ctx.drawImage(shad_NW, w*bl_width,
+                        d*bl_depth-h*bl_height);
+      }       
+    }
+  }
+  w_ctx.drawImage(buffer, 0, 0);
+}
+
+function draw_selection() {
+  b_ctx.clearRect(-100, -200, buffer.width*2+100, buffer.height*2+200); 
+  s_ctx.clearRect(0, 0, selec.width, selec.height);
+  b_ctx.fillStyle = "#000";
+  b_ctx.fillRect(-10,-10,bl_width+20,bl_depth+bl_height+30);
+  b_ctx.fillStyle = "#FFF";
+  b_ctx.fillRect(-5, -5,bl_width+10,bl_depth+bl_height+20);
+  
+  if (selection!=null) {
+    b_ctx.drawImage(blocs[selection], 0, -bl_height);
+  }
+  s_ctx.drawImage(buffer, 0, 0);
+}
+
+function draw() {
+  b_ctx.clearRect(-100, -200, buffer.width*2+100, buffer.height*2+200); 
+  c_ctx.clearRect(0, 0, chars.width, chars.height);
+
+  // draw selector 
+  var sx = Math.floor((mouseX)/bl_width);
+  var sy = -1;
+  if (0<=sx && sx<width) 
+  for (d=depth-1; d>=0; d--) {
+//  for (d=0; d<depth-1; d++) {
+
+    var tmp = d*(bl_depth-1) - plateau[sx][d].length*bl_height;
+    if (sy==-1 && tmp+bl_depth<=mouseY)
+      sy = -2;
+    if (sy==-1 && tmp<mouseY && mouseY<tmp+bl_depth)
+      sy = d; 
+  }
+  if (0<=sx && sx<width && 0<=sy && sy<depth) {
+    b_ctx.drawImage(bl_selector, sx*bl_width,
+                                 sy*bl_depth -
+				 (plateau[sx][sy].length)*bl_height);
+    if (sy+1<depth && plateau[sx][sy].length<plateau[sx][sy+1].length) {
+      b_ctx.globalCompositeOperation = 'destination-out';
+      b_ctx.drawImage(blocs[plateau[sx][sy+1][plateau[sx][sy+1].length-1]],
+                     sx*bl_width,
+                     (sy+1)*bl_depth-(plateau[sx][sy+1].length-1)*bl_height);
+      if (sx>0)
+      b_ctx.drawImage(blocs[plateau[sx-1][sy+1][plateau[sx-1][sy+1].length-1]],
+                      (sx-1)*bl_width,
+                      (sy+1)*bl_depth-(plateau[sx-1][sy+1].length-1)*bl_height);
+      if (sx<width-1)
+      b_ctx.drawImage(blocs[plateau[sx+1][sy+1][plateau[sx+1][sy+1].length-1]],
+                      (sx+1)*bl_width,
+                      (sy+1)*bl_depth-(plateau[sx+1][sy+1].length-1)*bl_height);
+      b_ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  // draw girl
+  var cx = Math.floor((x_cgirl+bl_width/2)/bl_width);
+  var cy = Math.floor((y_cgirl)/bl_depth)
+  if (0<=cy && cy<=depth-1) { 
+    b_ctx.drawImage(cgirl, x_cgirl, 
+                           y_cgirl - 10 - 
+                           (plateau[cx][cy].length + 1) *
+	  		   bl_height);
+    if (cy+1<depth && plateau[cx][cy].length<plateau[cx][cy+1].length) {
+      b_ctx.globalCompositeOperation = 'destination-out';
+      b_ctx.drawImage(blocs[plateau[cx][cy+1][plateau[cx][cy+1].length-1]],
+                      cx*bl_width,
+                      (cy+1)*bl_depth-(plateau[cx][cy+1].length-1)*bl_height);
+      if (cx>0)
+      b_ctx.drawImage(blocs[plateau[cx-1][cy+1][plateau[cx-1][cy+1].length-1]],
+                      (cx-1)*bl_width,
+                      (cy+1)*bl_depth-(plateau[cx-1][cy+1].length-1)*bl_height);
+      if (cx<width-1)
+      b_ctx.drawImage(blocs[plateau[cx+1][cy+1][plateau[cx+1][cy+1].length-1]],
+                      (cx+1)*bl_width,
+                      (cy+1)*bl_depth-(plateau[cx+1][cy+1].length-1)*bl_height);
+      b_ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  c_ctx.drawImage(buffer, 0, 0);
+  if (x_cgirl>=width*bl_width-bl_width) x_c_shift = -x_c_shift;
+  if (x_cgirl<=0)              x_c_shift =  -x_c_shift;
+  if (y_cgirl>=depth*bl_depth) y_c_shift = -y_c_shift;
+  if (y_cgirl<=0)              y_c_shift =  -y_c_shift;
+  x_cgirl += x_c_shift*speed;
+  y_cgirl += y_c_shift*speed;
+}
+
+// Keys management
+function changeKey(which, to){
+  switch (which){
+    case 65:case 37: if (x_c_shift>-5) x_c_shift -= 1; break; // left
+    case 87: case 38: if (y_c_shift>-5) y_c_shift -= 1; break; // up
+    case 68: case 39: if (x_c_shift<5) x_c_shift += 1; break; // right
+    case 83: case 40: if (y_c_shift<5) y_c_shift += 1; break;// down
+    case 32: x_c_shift; break; // space bar;
+    case 17: x_c_shift; break; // ctrl
+    case 66: x_c_shift; break; // b
+  }
+}
+document.onkeydown=function(e){changeKey((e||window.event).keyCode, 1);}
+/*document.onkeyup=function(e){changeKey((e||window.event).keyCode, 0);}*/
+
+// Mouse management
+function ev_mousemove(ev){
+  // Get the mouse position relative to the canvas element.
+  var modif = false;
+  if (ev.layerX || ev.layerX==0){ // Firefox
+    modif = true;
+    mouseX = ev.layerX;
+    mouseY = ev.layerY;
+    }else if (ev.offsetX || ev.offsetX==0) { // Opera
+    modif = true;
+    mouseX = ev.offsetX;
+    mouseY = ev.offsetY;
+  }
+  if (modif) {
+    //w_ctx.fillRect (mouseX, mouseY, 10, 10);
+    mouseX = mouseX/scale-x_shift;
+    mouseY = mouseY/scale-300;
+  }
+}
+
+function ev_mousedown(ev){
+  var sx = Math.floor((mouseX)/bl_width);
+  var sy = -1;
+  if (0<=sx && sx<width) 
+    for (d=0; d<depth; d++) {
+      var tmp = d*(bl_depth-1) - plateau[sx][d].length*bl_height;
+      if (tmp<mouseY && mouseY<tmp+bl_depth)
+        sy = d; 
+    }
+  if (0<=sx && sx<width && 0<=sy && sy<depth && plateau[sx][sy].length>1) {
+    if (selection==null) {
+      selection = plateau[sx][sy].pop();
+    }else{
+      plateau[sx][sy].push(selection);
+      selection = null;
+      add_house(sx, sy, plateau[sx][sy].length-1);
+    }  
+    draw_selection();
+    draw_world();
+
+  }
+}
+
+function add_house(cx, cy, ch){
+  if (0<=cx && cx<width-2 && 0<=cy && cy<depth && 
+      ch==plateau[cx][cy].length-1 && plateau[cx][cy][ch]==0 &&
+      ch==plateau[cx+1][cy].length-1 && plateau[cx+1][cy][ch]==0 &&
+      ch==plateau[cx+2][cy].length-1 && plateau[cx+2][cy][ch]==0) {
+    plateau[cx][cy].push(8);
+    plateau[cx+1][cy].push(6);
+    plateau[cx+2][cy].push(8);
+    plateau[cx][cy].push(9);
+    plateau[cx+1][cy].push(9);
+    plateau[cx+2][cy].push(9);
+    plateau[cx][cy].push(5);
+    plateau[cx+1][cy].push(5);
+    plateau[cx+2][cy].push(5);
+    plateau[cx][cy].push(3);
+    plateau[cx+1][cy].push(4);
+    plateau[cx+2][cy].push(2);
+  }
+}
+
+    </script>
+  </body>
+</html>
+

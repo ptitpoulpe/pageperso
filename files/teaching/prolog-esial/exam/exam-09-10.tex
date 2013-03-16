@@ -1,0 +1,85 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8x]{inputenc}
+\usepackage[lastexercise]{exercise}
+\usepackage{color}
+\usepackage[absolute]{textpos} 
+\usepackage{verbatim}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usetikzlibrary{positioning}
+
+\renewcommand\ExerciseName{Exercice}
+\renewcommand{\AnswerHeader}{\medskip\centerline{\textbf{Solution de
+                        l'\ExerciseName  \ExerciseHeaderNB}\smallskip}}
+\newenvironment{CAnswer}{\color{red}\begin{Answer}}
+                        {\end{Answer}}
+
+
+\title{Partiel de Programmation Logique}
+%\date{}
+
+\begin{document}
+\maketitle
+\begin{textblock*}{4cm}(10mm,10mm)
+\begin{Large}ESIAL 3A IL LE\end{Large}
+\end{textblock*}
+\begin{textblock*}{3cm}(160mm,10mm)
+\includegraphics[width=\textwidth]{../ESIAL.pdf}
+\end{textblock*}
+
+\section*{Mise en route:}
+
+La durée de l'examen est de \textbf{2h}. \textbf{Les exercices sont
+indépendants} et peuvent être faits dans le désordre. \textbf{Tous
+documents papier autorisés, l'échange de documents est interdit}.
+
+\textbf{Certaines indications vous suggèrent de créer certains prédicats
+intermédiaires.} Il n'est pas obligatoire de les utiliser et \textbf{vous
+pouvez introduire vos propres prédicats auxiliaires}. Dans ce cas vous 
+n'hésiterez pas à décrire leur fonctionnement et la manière de s'en
+servir.
+
+Nous considérons l'implantation Gnu-Prolog vu en cours et en TD.
+
+{\Large Vous séparerez sur des copies différentes les 2 parties de l'examen.}
+
+La notation tiendra compte de la présence d'explications dans vos réponses (sans
+pour autant paraphraser les programmes écrits) ainsi que de la qualité de la
+rédaction et de la présentation. Le barème sur 21 est donné à titre indicatif.
+
+\begin{Exercise}[title={Résolution}]
+\verbatiminput{reso.pro}
+\begin{verbatim}
+
+\Question Résolvez les assertions suivantse :
+\begin{verbatim}
+1-1 ?- P(2,Y).
+\end{verbatim}
+\begin{CAnswer}
+réponse
+\end{CAnswer}
+\end{Exercise}
+
+\begin{Exercise}[title={Arbres binaires}]
+\verbatiminput{reso.pro}
+\begin{verbatim}
+Soit la structure d'arbre binaire définie comme suit:
+\verb#bin(a,bin(b,nil,nil),nil)#
+
+Soit le predicat 
+
+taille(bin(_,X,Y)) :- .
+
+entier de peano
+add(s(X), Y, Z):- add(X, s(Y), Z).
+
+\Question Résolvez les assertions suivantse :
+\begin{verbatim}
+1-1 ?- P(2,Y).
+\end{verbatim}
+\begin{CAnswer}
+réponse
+\end{CAnswer}
+\end{Exercise}
+\end{document}
+

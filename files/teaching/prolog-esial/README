@@ -1,0 +1,45 @@
+Cours:
+ -bases (37 diapos)
+    faits, prédicats, questions, variables, règles,
+    syntaxe, structures, unification, algo d'unification,
+    =/2, preuve, arbre de recherche
+ -listes (19 diapos)
+    unification des listes, [,,], [|], représentation interne,
+    membre/2, 
+ -recursion (13 diapos)
+    logique de prolog, arbre de recherche, trace/0, 
+    inversion règles/buts, terminaison, éfficacité
+ -coupure (14 diapos)
+    !/0, fail/0, \+/1
+ -arithmetique (22 diapos)
+    +/2, -/2, */2, //2, is/2, </2, =</2, =:=/2, =/=/2,
+    >=/2, >/2, accumulateur, enveloppe
+ -secondOrdre (7 diapos)
+    findall/3, bagof/3, setof/3, call/1, once/1, forall/2,
+ -metalogique (20 diapos)
+    integer/1, float/1, atom/1, var/1, nonvar/1, fonctor/3,
+    ../2, arg/3, ==/2, \==/2, op/3
+ -extralogique (23 diapos)
+    write/1, display/1, put/1, tab/1, get0/1, get/1, skip/1,
+    read/1, repeat/0, consult/1, telling/1, tell/1, told/0,
+    open/3, write/2, close/1, read/2, at_end_of_stream/1,
+    nl/0, getcode/2, asserta/1, assertz/1, listing/0, 
+    dynamic/1, retract/1, retractall/1 
+ -contraintes (23 diapos)
+    Contraints Satisfaction Program, fd_domain/3, fd_domain/2,
+    fd_min/2, fd_max/2, fd_size/2, fd_dom/2, #=, #=#, fd_labeling/2,
+    fd_all_different/1, fd_atmost/3, fd_atleast/3, fd_exactly/3,
+    fd_relation/2, 
+ -systemeExpert (12 diapos)
+    
+    
+Exercice:
+ -TP1 (Représentation de problèmes, Unification)
+    +premiers pas
+    +puzzle
+    +negation de l'unification
+    +généalogie
+    +voisinage
+ -TP2 (Récursion, Listes)
+    +  
+
