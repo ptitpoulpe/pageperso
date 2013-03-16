@@ -15,8 +15,8 @@ Defended October 18th 2010
 Master Thesis under the direction of [Claire Gardent] and [Carlos Areces]
 
 ## Publications
-#. **Raffinement du Lexique des Verbes Français** (à paraître )
-*19ème conférence sur le Traitement Automatique des Langues Naturelles (TALN'12, oral presentation)
+#. **Raffinement du Lexique des Verbes Français** 
+*19ème conférence sur le Traitement Automatique des Langues Naturelles (TALN'12, oral presentation)*
 14 pages, Grenoble, France, June 2012
 
 #. **Deep Semantics for Dependency Structures**

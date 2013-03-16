@@ -5,12 +5,12 @@ title: About Me
 ## Curiculum Vitae
 ### Computer skills
 * **Programming:**  
-  object-oriented (Python, C++, Java), functional (Haskell),  
+  object-oriented (Python, C#, Java, C++), functional (Haskell),  
   imperative programming (Perl, C), declarative (Prolog).  
 * **Environments:**  
-  GNU Linux, MS Windows 9X/2000/XP.
+  GNU Linux, Windows.
 * **Tools:**  
-  mercurial, subversion, vim, GrGren (rewriting tool),
+  mercurial, git, subversion, vim, GrGren (rewriting tool),
   nltk (NLP for python), …
 * **Natural Language Processing Ressources:**  
   Wordnet, NomBank, PropBank, NomLex, FrameNet, CoNLL, …
@@ -24,7 +24,13 @@ title: About Me
 * NomBank, NomLex corpus reader for NLTK (python)
 
 ### Professional experience
-* September 2010 -- Now :  
+* October 2012 -- No:
+  Engineer in Algorille Team at Loria working on SimGrid
+
+* April 2012 – September 2012:
+  R&D engineer in Proxem, working on Natural Language Processing
+
+* September 2010 – March 2012 :
   Post-doctoral researcher (part-time position) in B5 project of the
   SFB 732 of Stuttgart (Germany), working on verbal ambiguities.
 

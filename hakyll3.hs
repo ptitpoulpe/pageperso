@@ -20,10 +20,9 @@ main = hakyll $ do
         ,"teaching.md"
         ,"papers.md"
         ,"projects.md"
-        ,"links.md"
         ,"aboutme.md"] $ \p ->  
     match p $ do
-      route   $ setExtension "php"
+      route   $ setExtension "html"
       compile $ pageCompiler
-        >>> applyTemplateCompiler "templates/default.php"
+        >>> applyTemplateCompiler "templates/default.html"
         >>> relativizeUrlsCompiler
